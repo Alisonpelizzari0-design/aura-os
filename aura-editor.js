@@ -260,7 +260,7 @@ const AuraEditor = {
     if (existing) existing.remove();
 
     if (!items.length) {
-      AuraUI.showToast('Ce module ne contient pas encore de textes éditables');
+console.log('Aucun texte éditable trouvé'); 
       return;
     }
 
@@ -316,10 +316,8 @@ const AuraEditor = {
       }
       count++;
     });
-    document.getElementById('aura-full-edit-overlay')?.remove();
-    AuraUI.showToast(`✓ ${count} texte${count>1?'s':''} mis à jour`);
-    if (window.earnXP) earnXP(5, 'Contenu de module modifié', '✏️');
-  },
+document.getElementById('aura-full-edit-overlay')?.remove();
+console.log(`✓ ${count} texte(s) mis à jour`);  },
 
   /* ── Réinitialiser les overrides du module courant ────────── */
   resetModule() {

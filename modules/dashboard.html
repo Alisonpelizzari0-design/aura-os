@@ -312,8 +312,6 @@ function initDashboard() {
   // Ancre IA (async, non bloquant)
   AuraCoach.ancreQuotidienne('dash-ancre-lbl').catch(()=>{});
 
-  // XP dashboard sync
-  syncDashXP();
 
   // Rappels d'échéance Vision Board (lecture directe du localStorage, pas de couplage fort)
   renderVisionBoardReminders();
@@ -360,30 +358,6 @@ function renderVisionBoardReminders() {
   }).join('');
 }
 
-function syncDashXP() {
-  const d   = AuraStore.get();
-  const lvl = AuraXP.getLevel(d.xp.total);
-  const fmt = n => Number(n).toLocaleString('fr-FR');
-  const el  = document.getElementById('dash-level-name');
-  const xt  = document.getElementById('dash-xp-total');
-  const xb  = document.getElementById('dash-xp-bar');
-  const xn  = document.getElementById('dash-xp-next');
-  if (el) el.textContent = `Niveau ${lvl.cur.n} — ${lvl.cur.name}`;
-  if (xt) xt.textContent = fmt(d.xp.total);
-  if (xb) xb.style.width = lvl.pct + '%';
-  if (xn) xn.textContent = lvl.nxt ? `${(lvl.nxt.xp - d.xp.total).toLocaleString('fr-FR')} XP pour Niveau ${lvl.nxt.n} — ${lvl.nxt.name}` : 'Niveau maximum atteint 🏆';
-  // Log XP
-  const logEl = document.getElementById('dash-xp-log');
-  if (logEl && d.log?.length) {
-    logEl.innerHTML = d.log.slice(0,4).map(l=>`
-      <div class="xp-log-item">
-        <span class="xp-log-icon">${l.icon}</span>
-        <span class="xp-log-txt">${l.label}</span>
-        <span class="xp-log-pts">+${l.pts} XP</span>
-        <span class="xp-log-time">${l.time}</span>
-      </div>`).join('');
-  }
-}
 
 function changeSign(sign) {
   AuraStore.set('prefs.sign', sign);

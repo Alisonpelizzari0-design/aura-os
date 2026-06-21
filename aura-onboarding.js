@@ -223,7 +223,7 @@ const AuraOnboarding = {
 
     // 2. Mode essentiel → configure le Studio pour masquer les modules non prioritaires
     if (this.data.mode === 'essentiel') {
-      const ALL_MODULES = ['dashboard','spheres','visionboard','rituel','habitudes','budget','patrimoine','cagnottes','charges','agenda','cuisine','maison','sante','social','voyages','abonnements','coach','xp'];
+      const ALL_MODULES = ['dashboard','spheres','visionboard','rituel','habitudes','budget','patrimoine','cagnottes','charges','agenda','cuisine','maison','sante','social','voyages','abonnements','coach'];
       const ALWAYS_VISIBLE = ['dashboard','coach','xp']; // cœur de l'app, jamais masqué
       const toShow = new Set([...ALWAYS_VISIBLE, ...this.data.priorities]);
       const toHide = ALL_MODULES.filter(m => !toShow.has(m));
@@ -238,11 +238,10 @@ const AuraOnboarding = {
     // 3. Marquer l'onboarding comme terminé
     this.markDone();
 
-    // 4. Toast de bienvenue chaleureux + fermeture
+// 4. Bienvenue chaleureux + fermeture
     this.close();
     setTimeout(() => {
-      AuraUI?.showToast?.(`✦ Bienvenue ${this.data.name}, ton AURA est prête`);
-      earnXP?.(20, 'Bienvenue dans AURA', '🌟');
+      
       // Ré-applique la nav du Studio sur la sidebar actuelle
       if (window.AuraApp?._applyStudioOnBoot) AuraApp._applyStudioOnBoot();
     }, 300);
@@ -348,21 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Laisse le temps à aura-db.js de tenter une restauration de session
   setTimeout(() => {
     const alreadyLoggedIn = window.SupaClient?.isLoggedIn?.();
-    if (alreadyLoggedIn) return; // déjà connectée, rien à afficher
-
-    // Un compte est-il déjà connu sur CET appareil (créé via le PIN précédemment) ?
-    // Si oui, c'est l'écran "Bon retour" du PIN qui doit s'afficher — pas l'onboarding
-    // générique de bienvenue, qui ne sait pas qu'un compte existe déjà ici.
-    let known = null;
-    try { known = JSON.parse(localStorage.getItem('aura_known_email_v1') || 'null'); } catch(_) {}
-
-    if (known?.email && known?.name) {
-      if (window.AuraAuth) AuraAuth.showLoginModal();
-      return;
-    }
-
-    // Sinon, premier contact réel sur cet appareil → onboarding normal
-    if (!AuraOnboarding.isDone()) {
+    if (!alreadyLoggedIn && !AuraOnboarding.isDone()) {
       AuraOnboarding.maybeShow();
     }
   }, 200);
