@@ -1,0 +1,407 @@
+<!-- ============================================================
+     AURA — dashboard.html
+     Fragment SPA — injecté dans #app-content par main.js
+     ============================================================ -->
+
+<style>
+/* Styles propres au dashboard uniquement */
+.dash-horo-grid { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; margin-top:.75rem; }
+.dash-horo-item { background:var(--bg); border-radius:var(--r-md); padding:.625rem .875rem; border:1px solid var(--bd); display:flex; gap:8px; align-items:flex-start; }
+.dash-horo-ico  { font-size:16px; flex-shrink:0; }
+.dash-horo-cat  { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--t3); }
+.dash-horo-msg  { font-size:12px; color:var(--text); margin-top:2px; line-height:1.4; }
+.ancre-q-text   { font-size:15px; font-weight:500; color:#3730A3; margin-top:5px; line-height:1.45; font-style:italic; }
+.ancre-aff-text { font-size:12px; color:#6D28D9; margin-top:6px; line-height:1.5; }
+.score-ring     { position:relative; width:80px; height:80px; flex-shrink:0; }
+.score-ring svg { transform:rotate(-90deg); }
+.score-ring-val { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; color:var(--pu-d); }
+</style>
+
+<!-- ── Ancre du jour ── -->
+<div class="ancre-card">
+  <div class="ancre-av"><i class="ti ti-star"></i></div>
+  <div style="flex:1">
+    <div class="ancre-lbl" id="dash-ancre-lbl">✦ Ancre du jour — Chargement IA...</div>
+    <div class="ancre-q-text"  id="ancre-q">" Que dois-je faire aujourd'hui pour être sereine demain ? "</div>
+    <div class="ancre-aff-text" id="ancre-aff">Chaque action posée avec intention crée la vie que tu mérites.</div>
+    <div class="ancre-chips">
+      <button class="ancre-chip" onclick="refreshAncre()">Nouvelle ancre ✦</button>
+      <button class="ancre-chip" onclick="navigate('rituel')">Rituel du matin</button>
+      <button class="ancre-chip" onclick="navigate('coach')">Coach IA</button>
+      <button class="ancre-chip" onclick="navigate('xp')">Mon XP</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Stats du jour ── -->
+<div class="g4">
+  <div class="stat-mini" onclick="navigate('xp')">
+    <div class="lbl">Score de vie</div>
+    <div class="val">74<span style="font-size:14px;color:var(--t3)">/100</span></div>
+    <div class="hint" style="color:var(--gr)">+3 cette semaine</div>
+  </div>
+  <div class="stat-mini" onclick="navigate('xp')">
+    <div class="lbl">XP aujourd'hui</div>
+    <div class="val">+<span id="today-xp">145</span></div>
+    <div class="hint">Objectif : 200 XP</div>
+  </div>
+  <div class="stat-mini" onclick="navigate('habitudes')">
+    <div class="lbl">Habitudes</div>
+    <div class="val">5<span style="font-size:14px;color:var(--t3)">/7</span></div>
+    <div class="hint">Streak 12 jours 🔥</div>
+  </div>
+  <div class="stat-mini" onclick="navigate('budget')">
+    <div class="lbl">Épargne du mois</div>
+    <div class="val">618 €</div>
+    <div class="hint">Taux : 18,2%</div>
+  </div>
+</div>
+
+<!-- ── Horoscope + Sphères ── -->
+<div class="g2">
+
+  <!-- Horoscope -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"><i class="ti ti-stars"></i> <span data-aura-edit="dashboard.horo.title" data-aura-edit-label="Titre carte Horoscope">Horoscope du jour</span></span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <select id="dash-sign-picker" onchange="changeSign(this.value)" style="font-size:11px;padding:3px 7px;border-radius:var(--r-sm);border:1px solid var(--bd2);background:var(--bg);color:var(--text);cursor:pointer">
+          <option value="belier">♈ Bélier</option>
+          <option value="taureau">♉ Taureau</option>
+          <option value="gemeaux">♊ Gémeaux</option>
+          <option value="cancer">♋ Cancer</option>
+          <option value="lion">♌ Lion</option>
+          <option value="vierge" selected>♍ Vierge</option>
+          <option value="balance">♎ Balance</option>
+          <option value="scorpion">♏ Scorpion</option>
+          <option value="sagittaire">♐ Sagittaire</option>
+          <option value="capricorne">♑ Capricorne</option>
+          <option value="verseau">♒ Verseau</option>
+          <option value="poissons">♓ Poissons</option>
+        </select>
+        <button class="btn-ghost" onclick="loadHoroAI()" style="font-size:11px">✨ IA</button>
+      </div>
+    </div>
+
+    <!-- Horoscope rendu ici -->
+    <div id="dash-horo-content">
+      <div style="text-align:center;padding:1.5rem;color:var(--t3);font-size:12px;font-style:italic">
+        Consultation des astres...
+      </div>
+    </div>
+  </div>
+
+  <!-- Sphères + XP progression -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="ti ti-circles"></i> <span data-aura-edit="dashboard.spheres.title" data-aura-edit-label="Titre carte Sphères">Sphères de vie</span></span>
+        <button class="btn-ghost" onclick="navigate('spheres')">Voir tout →</button>
+      </div>
+      <div class="sphere-grid">
+        <div class="sph famille" onclick="earnXP(15,'Sphère Famille','👨‍👩‍👧')">
+          <div class="sph-xp">+15</div><div class="sph-icon">👨‍👩‍👧</div>
+          <div class="sph-name">Famille</div><div class="sph-score">72</div>
+          <div class="sph-bar"><div class="sph-fill" style="width:72%"></div></div>
+        </div>
+        <div class="sph travail" onclick="earnXP(10,'Sphère Travail','💼')">
+          <div class="sph-xp">+10</div><div class="sph-icon">💼</div>
+          <div class="sph-name">Travail</div><div class="sph-score">68</div>
+          <div class="sph-bar"><div class="sph-fill" style="width:68%"></div></div>
+        </div>
+        <div class="sph finance" onclick="navigate('budget')">
+          <div class="sph-xp">+25</div><div class="sph-icon">💰</div>
+          <div class="sph-name">Finance</div><div class="sph-score">78</div>
+          <div class="sph-bar"><div class="sph-fill" style="width:78%"></div></div>
+        </div>
+        <div class="sph sante" onclick="navigate('habitudes')">
+          <div class="sph-xp">+20</div><div class="sph-icon">🌿</div>
+          <div class="sph-name">Santé</div><div class="sph-score">82</div>
+          <div class="sph-bar"><div class="sph-fill" style="width:82%"></div></div>
+        </div>
+        <div class="sph creation" onclick="navigate('coach')">
+          <div class="sph-xp">+5</div><div class="sph-icon">🚀</div>
+          <div class="sph-name">Création</div><div class="sph-score">55</div>
+          <div class="sph-bar"><div class="sph-fill" style="width:55%"></div></div>
+        </div>
+        <div class="sph dev" onclick="earnXP(15,'Sphère Perso','🌱')">
+          <div class="sph-xp">+15</div><div class="sph-icon">🌱</div>
+          <div class="sph-name">Perso</div><div class="sph-score">70</div>
+          <div class="sph-bar"><div class="sph-fill" style="width:70%"></div></div>
+        </div>
+        <div class="sph maison" onclick="earnXP(20,'Sphère Maison','🏡')">
+          <div class="sph-xp">+20</div><div class="sph-icon">🏡</div>
+          <div class="sph-name">Maison</div><div class="sph-score">85</div>
+          <div class="sph-bar"><div class="sph-fill" style="width:85%"></div></div>
+        </div>
+        <div class="sph vision" onclick="navigate('coach')">
+          <div class="sph-xp">+8</div><div class="sph-icon">✨</div>
+          <div class="sph-name">Vision</div><div class="sph-score">61</div>
+          <div class="sph-bar"><div class="sph-fill" style="width:61%"></div></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--t2);margin-top:.75rem;padding:.625rem;background:var(--bg);border-radius:var(--r-md)" data-aura-edit="dashboard.spheres.tip" data-aura-edit-label="Conseil sous les sphères">
+        💡 Clique sur une sphère pour gagner des XP — Création (55) est ton prochain levier.
+      </div>
+    </div>
+
+    <!-- XP mini -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="ti ti-trophy"></i> <span data-aura-edit="dashboard.xp.title" data-aura-edit-label="Titre carte XP">Progression XP</span></span>
+        <button class="btn-ghost" onclick="navigate('xp')">Badges →</button>
+      </div>
+      <div style="background:var(--go-l);border:1px solid var(--go-b);border-radius:var(--r-md);padding:.875rem;margin-bottom:.875rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:700;color:#92400E" id="dash-level-name">Niveau 7 — Architecte</span>
+          <span style="font-size:11px;color:#78350F"><span id="dash-xp-total">3 420</span> / 5 000 XP</span>
+        </div>
+        <div style="height:8px;background:var(--go-b);border-radius:4px;overflow:hidden">
+          <div id="dash-xp-bar" style="height:100%;width:68%;background:linear-gradient(90deg,var(--go),#F97316);border-radius:4px;transition:width .6s"></div>
+        </div>
+        <div style="font-size:10px;color:#92400E;margin-top:5px" id="dash-xp-next">1 580 XP pour Niveau 8 — Visionnaire</div>
+      </div>
+      <div id="dash-xp-log">
+        <div class="xp-log-item"><span class="xp-log-icon">☀️</span><span class="xp-log-txt">Rituel du matin</span><span class="xp-log-pts">+25 XP</span><span class="xp-log-time">8h12</span></div>
+        <div class="xp-log-item"><span class="xp-log-icon">💰</span><span class="xp-log-txt">Virement épargne auto</span><span class="xp-log-pts">+50 XP</span><span class="xp-log-time">7h00</span></div>
+        <div class="xp-log-item"><span class="xp-log-icon">🌿</span><span class="xp-log-txt">Sport 40 min</span><span class="xp-log-pts">+30 XP</span><span class="xp-log-time">6h30</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Patrimoine + Recette du soir ── -->
+<div class="g2">
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"><i class="ti ti-building-bank"></i> <span data-aura-edit="dashboard.patrimoine.title" data-aura-edit-label="Titre carte Patrimoine">Patrimoine net</span></span>
+      <button class="btn-ghost" onclick="navigate('patrimoine')">Détail →</button>
+    </div>
+    <div style="font-size:28px;font-weight:800;color:var(--gr);margin-bottom:4px">47 340 €</div>
+    <div style="font-size:11px;color:var(--t2);margin-bottom:.875rem">+2 100 € ce trimestre · +4,6% ↑</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem">
+      <div style="background:var(--gr-l);border-radius:var(--r-md);padding:.625rem;text-align:center">
+        <div style="font-size:10px;color:var(--gr);font-weight:700;text-transform:uppercase">Actifs</div>
+        <div style="font-size:15px;font-weight:800;color:var(--gr)">52 340 €</div>
+      </div>
+      <div style="background:var(--re-l);border-radius:var(--r-md);padding:.625rem;text-align:center">
+        <div style="font-size:10px;color:var(--re);font-weight:700;text-transform:uppercase">Dettes</div>
+        <div style="font-size:15px;font-weight:800;color:var(--re)">5 000 €</div>
+      </div>
+      <div style="background:var(--pu-l);border-radius:var(--r-md);padding:.625rem;text-align:center">
+        <div style="font-size:10px;color:var(--pu);font-weight:700;text-transform:uppercase">Épargne</div>
+        <div style="font-size:15px;font-weight:800;color:var(--pu)">618 €/m</div>
+      </div>
+    </div>
+    <!-- Mini budget -->
+    <div style="margin-top:.875rem;padding-top:.875rem;border-top:1px solid var(--bd)">
+      <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.4px">Budget juin</div>
+      <div class="env-row">
+        <div class="env-ic" style="background:var(--bl-l)"><i class="ti ti-home-2" style="color:var(--bl)"></i></div>
+        <div style="flex:1"><div class="env-name">Logement</div><div class="env-bar"><div class="env-fill ok" style="width:100%"></div></div></div>
+        <span class="env-pct ok">100%</span>
+      </div>
+      <div class="env-row">
+        <div class="env-ic" style="background:var(--or-l)"><i class="ti ti-shopping-cart" style="color:var(--or)"></i></div>
+        <div style="flex:1"><div class="env-name">Alimentation</div><div class="env-bar"><div class="env-fill mid" style="width:89%"></div></div></div>
+        <span class="env-pct mid">89%</span>
+      </div>
+      <div class="env-row" style="margin-bottom:0">
+        <div class="env-ic" style="background:var(--re-l)"><i class="ti ti-confetti" style="color:var(--re)"></i></div>
+        <div style="flex:1"><div class="env-name">Loisirs</div><div class="env-bar"><div class="env-fill ov" style="width:100%"></div></div></div>
+        <span class="env-pct ov">119% ⚠</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:1.25rem">
+
+    <!-- Recette du soir -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="ti ti-chef-hat"></i> <span data-aura-edit="dashboard.cuisine.title" data-aura-edit-label="Titre carte Cuisine">Ce soir — Air Fryer</span></span>
+        <button class="btn-ghost" onclick="navigate('cuisine')">Cuisine →</button>
+      </div>
+      <div class="rec" onclick="earnXP(15,'Recette consultée','🍽️')">
+        <div class="rec-ic" style="background:var(--or-l)"><i class="ti ti-flame" style="color:var(--or)"></i></div>
+        <div class="rec-info">
+          <div class="rec-name">Ailes de poulet croustillantes</div>
+          <div class="rec-tags"><span class="tag or">Air fryer</span><span class="tag gr">25 min</span><span class="tag gr">Facile</span></div>
+        </div>
+        <span style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:2px"><i class="ti ti-clock"></i> 25 min</span>
+      </div>
+      <div class="rec" onclick="navigate('cuisine')" style="margin-top:0">
+        <div class="rec-ic" style="background:var(--bg)"><i class="ti ti-plus" style="color:var(--t3)"></i></div>
+        <div class="rec-info"><div class="rec-name" style="color:var(--t3);font-style:italic">Choisir une autre recette ↗</div></div>
+      </div>
+    </div>
+
+    <!-- Rappels d'échéance Vision Board -->
+    <div class="card" id="dash-vb-reminders-card" style="display:none">
+      <div class="card-header">
+        <span class="card-title"><i class="ti ti-stars"></i> Échéances Vision Board</span>
+        <button class="btn-ghost" onclick="navigate('visionboard')">Voir tout →</button>
+      </div>
+      <div id="dash-vb-reminders-list"></div>
+    </div>
+
+    <!-- Alertes -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="ti ti-bell"></i> Alertes</span>
+        <button class="btn-ghost" onclick="navigate('budget')">Budget →</button>
+      </div>
+      <div class="aura-alert red" id="al-dash-1">
+        <div class="alert-ic red"><i class="ti ti-alert-triangle"></i></div>
+        <div class="alert-body">
+          <div class="alert-title">Loisirs dépassés +19%</div>
+          <div class="alert-sub">Enveloppe épuisée · J-13 avant clôture</div>
+          <button class="alert-action" onclick="navigate('coach')">Voir un plan →</button>
+        </div>
+        <button class="alert-dismiss" onclick="AuraUI.dismissAlert('al-dash-1')" aria-label="Fermer"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="aura-alert green" id="al-dash-2">
+        <div class="alert-ic green"><i class="ti ti-check"></i></div>
+        <div class="alert-body">
+          <div class="alert-title">Livret A +300 € · 79% de l'objectif</div>
+          <div class="alert-sub">Encore 2 mois à ce rythme ✦</div>
+        </div>
+        <button class="alert-dismiss" onclick="AuraUI.dismissAlert('al-dash-2')" aria-label="Fermer"><i class="ti ti-x"></i></button>
+      </div>
+    </div>
+
+    <!-- Modules rapides -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title"><i class="ti ti-layout-grid"></i> Accès rapide</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem">
+        <button onclick="navigate('rituel')"    class="btn-pill" style="justify-content:center;flex-direction:column;height:52px;gap:3px;border-radius:var(--r-md)"><i class="ti ti-sunrise" style="font-size:18px"></i><span style="font-size:10px">Rituel</span></button>
+        <button onclick="navigate('habitudes')" class="btn-pill" style="justify-content:center;flex-direction:column;height:52px;gap:3px;border-radius:var(--r-md)"><i class="ti ti-repeat"  style="font-size:18px"></i><span style="font-size:10px">Habitudes</span></button>
+        <button onclick="navigate('coach')"     class="btn-pill pu" style="justify-content:center;flex-direction:column;height:52px;gap:3px;border-radius:var(--r-md)"><i class="ti ti-sparkles" style="font-size:18px"></i><span style="font-size:10px">Coach IA</span></button>
+        <button onclick="navigate('cagnottes')" class="btn-pill" style="justify-content:center;flex-direction:column;height:52px;gap:3px;border-radius:var(--r-md)"><i class="ti ti-pig-money" style="font-size:18px"></i><span style="font-size:10px">Cagnottes</span></button>
+        <button onclick="navigate('sante')"     class="btn-pill" style="justify-content:center;flex-direction:column;height:52px;gap:3px;border-radius:var(--r-md)"><i class="ti ti-heart" style="font-size:18px"></i><span style="font-size:10px">Santé</span></button>
+        <button onclick="navigate('xp')"        class="btn-pill xp" style="justify-content:center;flex-direction:column;height:52px;gap:3px;border-radius:var(--r-md)"><i class="ti ti-trophy" style="font-size:18px"></i><span style="font-size:10px">XP</span></button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Script du module dashboard ── -->
+<script>
+// Init du dashboard — appelé par main.js via window.initModule
+window.initModule = function(name) {
+  if (name !== 'dashboard') return;
+  initDashboard();
+};
+
+function initDashboard() {
+  // Signe depuis les préférences
+  const d    = AuraStore.get();
+  const sign = d.prefs?.sign || 'vierge';
+  const el   = document.getElementById('dash-sign-picker');
+  if (el) el.value = sign;
+
+  // Horoscope local immédiat
+  AuraHoro.render(sign, 'dash-horo-content');
+
+  // Ancre IA (async, non bloquant)
+  AuraCoach.ancreQuotidienne('dash-ancre-lbl').catch(()=>{});
+
+  // XP dashboard sync
+  syncDashXP();
+
+  // Rappels d'échéance Vision Board (lecture directe du localStorage, pas de couplage fort)
+  renderVisionBoardReminders();
+
+  // Appliquer les textes personnalisés via le Studio (sécurité si appelé hors navigate())
+  if (window.AuraEditor) AuraEditor.applyOverrides('dashboard');
+}
+
+/* ── Rappels Vision Board : objectifs avec échéance proche, non atteints ── */
+function renderVisionBoardReminders() {
+  const card = document.getElementById('dash-vb-reminders-card');
+  const list = document.getElementById('dash-vb-reminders-list');
+  if (!card || !list) return;
+
+  let cards = [];
+  try {
+    const vb = JSON.parse(localStorage.getItem('aura_visionboard_v1') || '{}');
+    cards = vb.cards || [];
+  } catch(_) {}
+
+  const today = new Date();
+  const upcoming = cards
+    .filter(c => c.deadline)
+    .map(c => {
+      const pct = c.steps?.length ? Math.round((c.steps.filter(s=>s.done).length / c.steps.length) * 100) : 0;
+      const daysLeft = Math.ceil((new Date(c.deadline) - today) / 86400000);
+      return { ...c, pct, daysLeft };
+    })
+    .filter(c => c.pct < 100 && c.daysLeft <= 30 && c.daysLeft >= 0)
+    .sort((a,b) => a.daysLeft - b.daysLeft)
+    .slice(0, 4);
+
+  if (!upcoming.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  list.innerHTML = upcoming.map(c => {
+    const urgent = c.daysLeft <= 7;
+    const emoji = c.visual?.type === 'emoji' ? c.visual.value : '🎯';
+    return `<div class="vb-dash-reminder" onclick="navigate('visionboard')" style="cursor:pointer">
+      <span class="vb-dash-reminder-dot" style="background:${urgent?'var(--re)':'var(--am)'}"></span>
+      <span class="vb-dash-reminder-text">${emoji} ${c.title}</span>
+      <span class="vb-dash-reminder-days" style="color:${urgent?'var(--re)':'var(--am)'}">J-${c.daysLeft}</span>
+    </div>`;
+  }).join('');
+}
+
+function syncDashXP() {
+  const d   = AuraStore.get();
+  const lvl = AuraXP.getLevel(d.xp.total);
+  const fmt = n => Number(n).toLocaleString('fr-FR');
+  const el  = document.getElementById('dash-level-name');
+  const xt  = document.getElementById('dash-xp-total');
+  const xb  = document.getElementById('dash-xp-bar');
+  const xn  = document.getElementById('dash-xp-next');
+  if (el) el.textContent = `Niveau ${lvl.cur.n} — ${lvl.cur.name}`;
+  if (xt) xt.textContent = fmt(d.xp.total);
+  if (xb) xb.style.width = lvl.pct + '%';
+  if (xn) xn.textContent = lvl.nxt ? `${(lvl.nxt.xp - d.xp.total).toLocaleString('fr-FR')} XP pour Niveau ${lvl.nxt.n} — ${lvl.nxt.name}` : 'Niveau maximum atteint 🏆';
+  // Log XP
+  const logEl = document.getElementById('dash-xp-log');
+  if (logEl && d.log?.length) {
+    logEl.innerHTML = d.log.slice(0,4).map(l=>`
+      <div class="xp-log-item">
+        <span class="xp-log-icon">${l.icon}</span>
+        <span class="xp-log-txt">${l.label}</span>
+        <span class="xp-log-pts">+${l.pts} XP</span>
+        <span class="xp-log-time">${l.time}</span>
+      </div>`).join('');
+  }
+}
+
+function changeSign(sign) {
+  AuraStore.set('prefs.sign', sign);
+  AuraHoro.render(sign, 'dash-horo-content');
+}
+
+function loadHoroAI() {
+  const sign = document.getElementById('dash-sign-picker')?.value || 'vierge';
+  AuraStore.set('prefs.sign', sign);
+  AuraHoro.getAI(sign, 'dash-horo-content');
+}
+
+function refreshAncre() {
+  document.getElementById('ancre-q').textContent = '✦ Génération de ta nouvelle ancre...';
+  AuraCoach.ancreQuotidienne('dash-ancre-lbl');
+  earnXP(10, 'Nouvelle ancre générée', '🌟');
+}
+
+// Auto-init si le module est chargé après DOMContentLoaded
+if (document.readyState !== 'loading') initDashboard();
+</script>

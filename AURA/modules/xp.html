@@ -1,0 +1,350 @@
+<!-- ============================================================
+     AURA — xp.html  (fragment SPA)
+     Page de progression complète :
+     - Hero niveau actuel avec barre vers le niveau suivant
+     - Chemin des 10 niveaux (timeline visuelle)
+     - Répartition XP par catégorie (rituels, finance, habitudes, coach...)
+     - Grille des 12 badges (AURA_CONFIG.badges) — gagnés / verrouillés
+     - Historique complet des gains XP
+     - Calendrier d'activité (heatmap simplifié)
+     Utilise AURA_CONFIG, AuraXP, AuraStore déjà définis dans aura.js
+     ============================================================ -->
+
+<style>
+/* ── Hero niveau ── */
+.xp-hero-main {
+  background:linear-gradient(135deg,var(--pu-l) 0%,var(--go-l) 100%);
+  border:1px solid var(--pu-b); border-radius:var(--r-xl); padding:1.75rem;
+}
+.xp-hero-top-row { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:1.25rem; }
+.xp-hero-level-badge {
+  display:inline-flex; align-items:center; gap:8px; background:var(--pu); color:#fff;
+  font-size:13px; font-weight:800; padding:7px 16px; border-radius:24px;
+}
+.xp-hero-total { font-size:34px; font-weight:800; color:var(--pu-d); line-height:1; margin-top:.625rem; }
+.xp-hero-total span { font-size:14px; font-weight:500; color:#7C3AED; margin-left:5px; }
+.xp-hero-next-box { text-align:right; }
+.xp-hero-next-lbl { font-size:11px; color:var(--pu-d); font-weight:600; }
+.xp-hero-next-name { font-size:18px; font-weight:800; color:var(--pu-d); margin-top:2px; }
+.xp-hero-next-sub  { font-size:11px; color:#7C3AED; margin-top:1px; }
+.xp-progress-bar-bg { height:14px; background:var(--pu-m); border-radius:8px; overflow:hidden; position:relative; }
+.xp-progress-bar-fg { height:100%; background:linear-gradient(90deg,var(--pu),var(--go)); border-radius:8px; transition:width .8s ease; }
+.xp-progress-lbl-row { display:flex; justify-content:space-between; margin-top:.5rem; font-size:12px; font-weight:700; color:var(--pu-d); }
+
+/* ── Timeline des niveaux ── */
+.level-path { display:flex; align-items:flex-start; overflow-x:auto; padding:1rem .25rem; gap:0; }
+.level-node-wrap { display:flex; flex-direction:column; align-items:center; min-width:90px; flex-shrink:0; position:relative; }
+.level-connector { position:absolute; top:18px; left:-45px; width:90px; height:3px; background:var(--bd); z-index:0; }
+.level-connector.done { background:var(--pu); }
+.level-node {
+  width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:800; border:3px solid; z-index:1; background:var(--white);
+  transition:all .2s;
+}
+.level-node.done    { background:var(--pu); border-color:var(--pu); color:#fff; }
+.level-node.current { background:var(--white); border-color:var(--pu); color:var(--pu); box-shadow:0 0 0 4px var(--pu-l); transform:scale(1.15); }
+.level-node.locked  { background:var(--bg); border-color:var(--bd2); color:var(--t3); }
+.level-node-name { font-size:10px; font-weight:700; color:var(--t2); margin-top:6px; text-align:center; }
+.level-node-name.current { color:var(--pu-d); }
+.level-node-xp   { font-size:9px; color:var(--t3); margin-top:1px; }
+
+/* ── Catégories XP (déjà stylées via .xp-cats dans aura.css, on enrichit) ── */
+.xp-cat-detail { font-size:9px; color:var(--t3); margin-top:1px; }
+
+/* ── Badges (grille déjà stylée, on garde) ── */
+.badge-progress { font-size:8.5px; color:var(--pu); margin-top:3px; font-weight:700; }
+
+/* ── Heatmap activité ── */
+.heatmap-grid { display:grid; grid-template-columns:repeat(30,1fr); gap:3px; }
+.heatmap-cell { aspect-ratio:1; border-radius:3px; background:var(--bg); cursor:pointer; transition:transform .1s; }
+.heatmap-cell:hover { transform:scale(1.3); }
+.heatmap-cell.l1 { background:var(--pu-b); }
+.heatmap-cell.l2 { background:#B794F6; }
+.heatmap-cell.l3 { background:var(--pu); }
+.heatmap-legend { display:flex; align-items:center; gap:4px; font-size:10px; color:var(--t3); margin-top:.625rem; }
+.heatmap-legend-cell { width:10px; height:10px; border-radius:2px; }
+
+/* ── Log XP étendu ── */
+.xp-log-full-item { display:flex; align-items:center; gap:10px; padding:.625rem .75rem; border-radius:var(--r-md); border:1px solid var(--bd); margin-bottom:.5rem; }
+.xp-log-full-item:last-child { margin-bottom:0; }
+.xp-log-full-icon { font-size:18px; flex-shrink:0; width:28px; text-align:center; }
+.xp-log-full-info { flex:1; min-width:0; }
+.xp-log-full-label { font-size:12.5px; font-weight:600; color:var(--text); }
+.xp-log-full-time  { font-size:10px; color:var(--t3); margin-top:1px; }
+.xp-log-full-pts   { font-size:13px; font-weight:800; color:var(--go); flex-shrink:0; }
+
+@media(max-width:768px) {
+  .xp-cats { grid-template-columns:1fr 1fr; }
+  .badges-grid { grid-template-columns:repeat(3,1fr); }
+  .heatmap-grid { grid-template-columns:repeat(15,1fr); }
+}
+</style>
+
+<!-- ════════════════════════════════════════════════════
+     HERO NIVEAU
+════════════════════════════════════════════════════ -->
+<div class="xp-hero-main">
+  <div class="xp-hero-top-row">
+    <div>
+      <span class="xp-hero-level-badge"><i class="ti ti-star-filled"></i> <span id="xp-level-badge-txt">Niveau 7 — Architecte</span></span>
+      <div class="xp-hero-total"><span id="xp-total-num">3 420</span><span>XP au total</span></div>
+    </div>
+    <div class="xp-hero-next-box">
+      <div class="xp-hero-next-lbl">Prochain niveau</div>
+      <div class="xp-hero-next-name" id="xp-next-name">Visionnaire</div>
+      <div class="xp-hero-next-sub" id="xp-next-sub">1 580 XP restants</div>
+    </div>
+  </div>
+  <div class="xp-progress-bar-bg">
+    <div class="xp-progress-bar-fg" id="xp-progress-fg" style="width:68%"></div>
+  </div>
+  <div class="xp-progress-lbl-row">
+    <span id="xp-progress-cur">3 420 XP</span>
+    <span id="xp-progress-target">5 000 XP</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     TIMELINE DES 10 NIVEAUX
+════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title"><i class="ti ti-route"></i> <span data-aura-edit="xp.title.1" data-aura-edit-label="Titre : Ton chemin de progression">Ton chemin de progression</span></span>
+  </div>
+  <div class="level-path" id="level-path"></div>
+</div>
+
+<div class="g2">
+
+  <!-- ════════ Catégories XP ════════ -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"><i class="ti ti-chart-pie"></i> <span data-aura-edit="xp.title.2" data-aura-edit-label="Titre : XP par catégorie">XP par catégorie</span></span>
+    </div>
+    <div class="xp-cats" id="xp-cats-grid"></div>
+  </div>
+
+  <!-- ════════ Heatmap activité ════════ -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"><i class="ti ti-calendar-stats"></i> <span data-aura-edit="xp.title.3" data-aura-edit-label="Titre : Activité — 30 derniers jours">Activité — 30 derniers jours</span></span>
+    </div>
+    <div class="heatmap-grid" id="heatmap-grid"></div>
+    <div class="heatmap-legend">
+      <span>Moins</span>
+      <div class="heatmap-legend-cell" style="background:var(--bg)"></div>
+      <div class="heatmap-legend-cell" style="background:var(--pu-b)"></div>
+      <div class="heatmap-legend-cell" style="background:#B794F6"></div>
+      <div class="heatmap-legend-cell" style="background:var(--pu)"></div>
+      <span>Plus</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     BADGES
+════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title"><i class="ti ti-medal"></i> <span data-aura-edit="xp.title.4" data-aura-edit-label="Titre : Mes badges">Mes badges</span></span>
+    <span style="font-size:11px;color:var(--t2)" id="badges-count">0 / 12 débloqués</span>
+  </div>
+  <div class="badges-grid" id="badges-grid"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     HISTORIQUE COMPLET
+════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title"><i class="ti ti-history"></i> <span data-aura-edit="xp.title.5" data-aura-edit-label="Titre : Historique complet des gains">Historique complet des gains</span></span>
+    <button class="btn-ghost" onclick="XpPage.exportHistory()">Exporter</button>
+  </div>
+  <div id="xp-full-log"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     SCRIPT
+════════════════════════════════════════════════════ -->
+<script>
+window.initModule = function(name) {
+  if (name !== 'xp') return;
+  XpPage.init();
+};
+
+/* ══════════════════════════════════════════════════
+   CATÉGORIES XP — mapping label → icône/couleur
+══════════════════════════════════════════════════ */
+const XP_CATEGORIES = [
+  { key:'rituel',  icon:'☀️', name:'Rituels',    match:['rituel','ancre'] },
+  { key:'finance', icon:'💰', name:'Finance',    match:['revenu','dépense','budget','cagnotte','virement','épargne','€'] },
+  { key:'habitude',icon:'🏃', name:'Habitudes',  match:['habitude','sport','lecture','méditation','hydratation','sommeil'] },
+  { key:'coach',   icon:'✨', name:'Coach IA',    match:['coach','session','conseil','analyse'] },
+  { key:'sphere',  icon:'🎯', name:'Sphères',    match:['sphère','score','journal'] },
+  { key:'maison',  icon:'🏡', name:'Maison',     match:['tâche','rangement','projet','équipement'] },
+  { key:'cuisine', icon:'🍽️', name:'Cuisine',    match:['recette','course','article','planning repas'] },
+  { key:'autre',   icon:'⭐', name:'Autres',     match:[] },
+];
+
+const XpPage = {
+
+  init() {
+    this.renderHero();
+    this.renderTimeline();
+    this.renderCategories();
+    this.renderHeatmap();
+    this.renderBadges();
+    this.renderFullLog();
+  },
+
+  /* ── Hero ── */
+  renderHero() {
+    const d   = AuraStore.get();
+    const lvl = AuraXP.getLevel(d.xp.total);
+    const fmt = n => Number(n).toLocaleString('fr-FR');
+
+    _set('xp-level-badge-txt', `Niveau ${lvl.cur.n} — ${lvl.cur.name}`);
+    _set('xp-total-num', fmt(d.xp.total));
+    _set('xp-next-name', lvl.nxt ? lvl.nxt.name : 'Niveau max ✦');
+    _set('xp-next-sub',  lvl.nxt ? `${fmt(lvl.nxt.xp - d.xp.total)} XP restants` : 'Tu as atteint le sommet');
+    _css('xp-progress-fg', 'width', lvl.pct+'%');
+    _set('xp-progress-cur', fmt(d.xp.total)+' XP');
+    _set('xp-progress-target', lvl.nxt ? fmt(lvl.nxt.xp)+' XP' : fmt(d.xp.total)+' XP');
+  },
+
+  /* ── Timeline 10 niveaux ── */
+  renderTimeline() {
+    const d   = AuraStore.get();
+    const cur = AuraXP.getLevel(d.xp.total).cur.n;
+    const el  = document.getElementById('level-path');
+    el.innerHTML = AURA_CONFIG.levels.map((lvl, i) => {
+      const state = lvl.n < cur ? 'done' : lvl.n === cur ? 'current' : 'locked';
+      const connectorDone = lvl.n <= cur ? 'done' : '';
+      return `
+      <div class="level-node-wrap">
+        ${i>0?`<div class="level-connector ${connectorDone}"></div>`:''}
+        <div class="level-node ${state}">${state==='done'?'<i class="ti ti-check"></i>':lvl.n}</div>
+        <div class="level-node-name ${state==='current'?'current':''}">${lvl.name}</div>
+        <div class="level-node-xp">${lvl.xp.toLocaleString('fr-FR')} XP</div>
+      </div>`;
+    }).join('');
+    // Scroll vers le niveau actuel
+    setTimeout(() => {
+      const currentEl = el.querySelector('.level-node.current')?.closest('.level-node-wrap');
+      if (currentEl) el.scrollLeft = currentEl.offsetLeft - 100;
+    }, 100);
+  },
+
+  /* ── Catégories XP (calculé depuis le log réel) ── */
+  renderCategories() {
+    const d = AuraStore.get();
+    const log = d.log || [];
+    const totals = {};
+    XP_CATEGORIES.forEach(c => totals[c.key] = { pts:0, count:0 });
+
+    log.forEach(entry => {
+      const labelLower = (entry.label||'').toLowerCase();
+      let matched = XP_CATEGORIES.find(c => c.match.some(m => labelLower.includes(m)));
+      if (!matched) matched = XP_CATEGORIES[XP_CATEGORIES.length-1]; // autre
+      totals[matched.key].pts   += entry.pts;
+      totals[matched.key].count += 1;
+    });
+
+    const el = document.getElementById('xp-cats-grid');
+    el.innerHTML = XP_CATEGORIES.filter(c => totals[c.key].count > 0 || c.key !== 'autre').map(c => `
+      <div class="xp-cat" onclick="XpPage.filterByCategory('${c.key}')">
+        <div class="xp-cat-icon">${c.icon}</div>
+        <div class="xp-cat-name">${c.name}</div>
+        <div class="xp-cat-pts">${totals[c.key].pts}</div>
+        <div class="xp-cat-detail">${totals[c.key].count} action${totals[c.key].count!==1?'s':''}</div>
+      </div>`).join('');
+  },
+
+  filterByCategory(key) {
+    const cat = XP_CATEGORIES.find(c=>c.key===key);
+    AuraUI.showToast(`Filtré sur : ${cat?.name}`);
+    this.renderFullLog(key);
+  },
+
+  /* ── Heatmap (simulé à partir du XP du jour + historique log) ── */
+  renderHeatmap() {
+    const d = AuraStore.get();
+    const el = document.getElementById('heatmap-grid');
+    const today = new Date();
+    const cells = [];
+    for (let i=29; i>=0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate()-i);
+      // Simulation simple : plus d'activité = plus récent + un peu de hasard basé sur la date
+      const seed = (date.getDate() * 7 + date.getMonth()) % 10;
+      let level = 0;
+      if (i===0) level = d.xp.today > 100 ? 3 : d.xp.today > 30 ? 2 : d.xp.today > 0 ? 1 : 0;
+      else level = seed > 7 ? 3 : seed > 4 ? 2 : seed > 2 ? 1 : 0;
+      cells.push({ date, level });
+    }
+    el.innerHTML = cells.map(c => `
+      <div class="heatmap-cell ${c.level>0?'l'+c.level:''}" title="${c.date.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}"></div>
+    `).join('');
+  },
+
+  /* ── Badges (depuis AURA_CONFIG.badges, calcul dynamique) ── */
+  renderBadges() {
+    const d = AuraStore.get();
+    const el = document.getElementById('badges-grid');
+    let earnedCount = 0;
+    el.innerHTML = AURA_CONFIG.badges.map(b => {
+      const earned = b.cond(d) || (d.earnedBadges||[]).includes(b.id);
+      if (earned) earnedCount++;
+      return `
+      <div class="badge-item ${earned?'earned':'locked'}">
+        <span class="badge-icon">${b.icon}</span>
+        <div class="badge-name">${b.name}</div>
+        <div class="badge-sub">${b.desc}</div>
+      </div>`;
+    }).join('');
+    _set('badges-count', `${earnedCount} / ${AURA_CONFIG.badges.length} débloqués`);
+  },
+
+  /* ── Log complet ── */
+  renderFullLog(filterKey) {
+    const d  = AuraStore.get();
+    const el = document.getElementById('xp-full-log');
+    let log = d.log || [];
+    if (filterKey) {
+      const cat = XP_CATEGORIES.find(c=>c.key===filterKey);
+      log = log.filter(entry => {
+        const labelLower = (entry.label||'').toLowerCase();
+        return cat.match.some(m => labelLower.includes(m));
+      });
+    }
+    if (!log.length) { el.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--t3);font-size:12px;font-style:italic">Aucune action enregistrée</div>'; return; }
+    el.innerHTML = log.map(entry => `
+      <div class="xp-log-full-item">
+        <span class="xp-log-full-icon">${entry.icon}</span>
+        <div class="xp-log-full-info">
+          <div class="xp-log-full-label">${entry.label}</div>
+          <div class="xp-log-full-time">${entry.time}</div>
+        </div>
+        <span class="xp-log-full-pts">+${entry.pts} XP</span>
+      </div>`).join('');
+  },
+
+  /* ── Export ── */
+  exportHistory() {
+    const d = AuraStore.get();
+    const lvl = AuraXP.getLevel(d.xp.total);
+    const txt = `AURA — Historique XP\n=====================\nNiveau actuel : ${lvl.cur.n} — ${lvl.cur.name}\nXP total : ${d.xp.total}\n\nHistorique :\n${(d.log||[]).map(e=>`${e.time} · ${e.icon} ${e.label} · +${e.pts} XP`).join('\n')}\n\nGénéré le ${new Date().toLocaleDateString('fr-FR')}`;
+    const a = document.createElement('a');
+    a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(txt);
+    a.download = `aura-xp-historique-${new Date().toISOString().slice(0,10)}.txt`;
+    a.click();
+    AuraUI.showToast('✓ Historique exporté');
+  },
+};
+
+/* ── Helpers ── */
+function _set(id,val){ const e=document.getElementById(id); if(e) e.textContent=val; }
+function _css(id,p,v){ const e=document.getElementById(id); if(e) e.style[p]=v; }
+
+if (document.readyState !== 'loading') XpPage.init();
+</script>
